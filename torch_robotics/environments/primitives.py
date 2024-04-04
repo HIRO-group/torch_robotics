@@ -343,92 +343,92 @@ MultiBoxField = MultiRoundedBoxField
 
 
 # TODO - NEEDS CHECKING
-# class MultiInfiniteCylinderField(PrimitiveShapeField):
-#
-#     def __init__(self, centers, radii, tensor_args=None):
-#         """
-#         Parameters
-#         ----------
-#             centers : numpy array
-#                 Centers of the cylinders.
-#             radii : numpy array
-#                 Radii of the cylinders.
-#         """
-#         super().__init__(dim=centers.shape[-1], tensor_args=tensor_args)
-#         self.centers = torch.tensor(centers, **self.tensor_args)
-#         self.radii = torch.tensor(radii, **self.tensor_args)
-#
-#     def __repr__(self):
-#         return f"InfiniteCylinder(centers={self.centers}, radii={self.radii})"
-#
-#     def compute_signed_distance_impl(self, x):
-#         # treat it like a circle in 2d
-#         distance_to_centers_2d = torch.norm(x[..., :2].unsqueeze(-2) - self.centers.unsqueeze(0)[..., :2], dim=-1)
-#         sdfs = distance_to_centers_2d - self.radii.unsqueeze(0)
-#         return torch.min(sdfs, dim=-1)[0]
-#
-#     def zero_grad(self):
-#         self.centers.grad = None
-#         self.radii.grad = None
-#
-#     def add_to_occupancy_map(self, obst_map):
-#         raise NotImplementedError
-#
-#     def render(self, ax, pos=None, ori=None):
-#         raise NotImplementedError
-#         # https://stackoverflow.com/a/49311446
-#         def data_for_cylinder_along_z(center_x, center_y, radius, height_z):
-#             z = np.linspace(0, height_z, 50)
-#             theta = np.linspace(0, 2 * np.pi, 50)
-#             theta_grid, z_grid = np.meshgrid(theta, z)
-#             x_grid = radius * np.cos(theta_grid) + center_x
-#             y_grid = radius * np.sin(theta_grid) + center_y
-#             return x_grid, y_grid, z_grid
-#
-#         for center, radius in zip(self.centers, self.radii):
-#             cx, cy, cz = to_numpy(center)
-#             radius = to_numpy(radius)
-#             xc, yc, zc = data_for_cylinder_along_z(cx, cy, radius, 1.5)  # add height just for visualization
-#             ax.plot_surface(xc, yc, zc, cmap='gray', alpha=0.75)
-#
-#
-# class MultiCylinderField(MultiInfiniteCylinderField):
-#
-#     def __init__(self, centers, radii, heights, tensor_args=None):
-#         """
-#         Parameters
-#         ----------
-#             centers : numpy array
-#                 Centers of the cylinders.
-#             radii : numpy array
-#                 Radii of the cylinders.
-#             heights : numpy array
-#                 Heights of the cylinders.
-#         """
-#         super().__init__(centers, radii, tensor_args=tensor_args)
-#         self.heights = torch.tensor(heights, **self.tensor_args)
-#         self.half_heights = self.heights / 2
-#
-#     def __repr__(self):
-#         return f"Cylinder(centers={self.centers}, radii={self.radii}, heights={self.heights})"
-#
-#     def compute_signed_distance_impl(self, x):
-#         raise NotImplementedError
-#         x = x - self.center
-#         x_proj = x[:, :2]
-#         x_proj_norm = torch.norm(x_proj, dim=-1)
-#         x_proj_norm = torch.where(x_proj_norm > 0, x_proj_norm, torch.ones_like(x_proj_norm))
-#         x_proj = x_proj / x_proj_norm[:, None]
-#         x_proj = x_proj * self.radius
-#         x_proj = torch.cat([x_proj, x[:, 2:]], dim=-1)
-#         return torch.norm(x - x_proj, dim=-1) - self.radius
-#
-#     def zero_grad(self):
-#         super().zero_grad()
-#         self.heights.grad = None
-#
-#     def add_to_occupancy_map(self, obst_map):
-#         raise NotImplementedError
+class MultiInfiniteCylinderField(PrimitiveShapeField):
+
+    def __init__(self, centers, radii, tensor_args=None):
+        """
+        Parameters
+        ----------
+            centers : numpy array
+                Centers of the cylinders.
+            radii : numpy array
+                Radii of the cylinders.
+        """
+        super().__init__(dim=centers.shape[-1], tensor_args=tensor_args)
+        self.centers = torch.tensor(centers, **self.tensor_args)
+        self.radii = torch.tensor(radii, **self.tensor_args)
+
+    def __repr__(self):
+        return f"InfiniteCylinder(centers={self.centers}, radii={self.radii})"
+
+    def compute_signed_distance_impl(self, x):
+        # treat it like a circle in 2d
+        distance_to_centers_2d = torch.norm(x[..., :2].unsqueeze(-2) - self.centers.unsqueeze(0)[..., :2], dim=-1)
+        sdfs = distance_to_centers_2d - self.radii.unsqueeze(0)
+        return torch.min(sdfs, dim=-1)[0]
+
+    def zero_grad(self):
+        self.centers.grad = None
+        self.radii.grad = None
+
+    def add_to_occupancy_map(self, obst_map):
+        raise NotImplementedError
+
+    def render(self, ax, pos=None, ori=None):
+        raise NotImplementedError
+        # https://stackoverflow.com/a/49311446
+        def data_for_cylinder_along_z(center_x, center_y, radius, height_z):
+            z = np.linspace(0, height_z, 50)
+            theta = np.linspace(0, 2 * np.pi, 50)
+            theta_grid, z_grid = np.meshgrid(theta, z)
+            x_grid = radius * np.cos(theta_grid) + center_x
+            y_grid = radius * np.sin(theta_grid) + center_y
+            return x_grid, y_grid, z_grid
+
+        for center, radius in zip(self.centers, self.radii):
+            cx, cy, cz = to_numpy(center)
+            radius = to_numpy(radius)
+            xc, yc, zc = data_for_cylinder_along_z(cx, cy, radius, 1.5)  # add height just for visualization
+            ax.plot_surface(xc, yc, zc, cmap='gray', alpha=0.75)
+
+
+class MultiCylinderField(MultiInfiniteCylinderField):
+
+    def __init__(self, centers, radii, heights, tensor_args=None):
+        """
+        Parameters
+        ----------
+            centers : numpy array
+                Centers of the cylinders.
+            radii : numpy array
+                Radii of the cylinders.
+            heights : numpy array
+                Heights of the cylinders.
+        """
+        super().__init__(centers, radii, tensor_args=tensor_args)
+        self.heights = torch.tensor(heights, **self.tensor_args)
+        self.half_heights = self.heights / 2
+
+    def __repr__(self):
+        return f"Cylinder(centers={self.centers}, radii={self.radii}, heights={self.heights})"
+
+    def compute_signed_distance_impl(self, x):
+        raise NotImplementedError
+        x = x - self.center
+        x_proj = x[:, :2]
+        x_proj_norm = torch.norm(x_proj, dim=-1)
+        x_proj_norm = torch.where(x_proj_norm > 0, x_proj_norm, torch.ones_like(x_proj_norm))
+        x_proj = x_proj / x_proj_norm[:, None]
+        x_proj = x_proj * self.radius
+        x_proj = torch.cat([x_proj, x[:, 2:]], dim=-1)
+        return torch.norm(x - x_proj, dim=-1) - self.radius
+
+    def zero_grad(self):
+        super().zero_grad()
+        self.heights.grad = None
+
+    def add_to_occupancy_map(self, obst_map):
+        raise NotImplementedError
 #
 #
 # class MultiEllipsoidField(PrimitiveShapeField):

@@ -224,7 +224,10 @@ class PandaMotionPlanningIsaacGymEnv:
         # gym arguments
         self.gym_args = gymutil.parse_arguments()
         self.gym_args.use_gpu_pipeline = use_pipeline_gpu
-        self.tensor_args = {'device': get_torch_device(device='cuda' if use_pipeline_gpu else 'cpu')}
+        self.gym_args.compute_device_id = 1
+        # self.gym_args.graphics_device_id = 1
+        self.tensor_args = {'device': torch.device(type="cuda", index=1)}
+        self.gym_args.sim_device = 'cuda:1'
 
         self.sync_with_real_time = sync_with_real_time
 
@@ -248,6 +251,8 @@ class PandaMotionPlanningIsaacGymEnv:
             sim_params.physx.use_gpu = self.gym_args.use_gpu
         else:
             raise Exception("This example can only be used with PhysX")
+
+        # import pdb; pdb.set_trace()
 
         # create sim
         self.sim = self.gym.create_sim(

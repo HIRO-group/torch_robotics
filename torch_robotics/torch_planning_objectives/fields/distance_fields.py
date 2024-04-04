@@ -113,6 +113,7 @@ class EmbodimentDistanceFieldBase(DistanceField):
         elif field_type == 'sdf':  # this computes the negative cost from the DISTANCE FUNCTION
             margin = self.collision_margins + self.cutoff_margin
             # returns all distances from each link to the environment
+            # import pdb; pdb.set_trace()
             margin_minus_sdf = -(self.compute_embodiment_signed_distances(q, link_pos, **kwargs) - margin)
             if self.clamp_sdf:
                 clamped_sdf = torch.relu(margin_minus_sdf)
