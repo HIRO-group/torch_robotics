@@ -31,8 +31,11 @@ class PlanningTask(Task):
     ):
         super().__init__(**kwargs)
         self.ws_limits = self.env.limits if ws_limits is None else ws_limits
-        self.ws_min = self.ws_limits[0]
-        self.ws_max = self.ws_limits[1]
+        try:
+            self.ws_min = self.ws_limits[0]
+            self.ws_max = self.ws_limits[1]
+        except Exception as e:
+            import pdb; pdb.set_trace()
 
         # Optional: use an occupancy map for collision checking -- useful for sampling-based algorithms
         # A precomputed collision map is faster when checking for collisions, in comparison to computing the distances

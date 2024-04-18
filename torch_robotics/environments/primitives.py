@@ -109,6 +109,7 @@ class MultiSphereField(PrimitiveShapeField):
         distance_to_centers = torch.norm(x.unsqueeze(-2) - self.centers.unsqueeze(0), dim=-1)
         # sdfs = distance_to_centers - self.radii.unsqueeze(0)
         sdfs = distance_to_centers - self.radii
+        # import pdb; pdb.set_trace()
         return torch.min(sdfs, dim=-1)[0]
 
     def zero_grad(self):
@@ -324,6 +325,7 @@ class MultiRoundedBoxField(MultiBoxField):
         # Implementation of rounded box
         # https://raphlinus.github.io/graphics/2020/04/21/blurred-rounded-rects.html
         distance_to_centers = torch.abs(x.unsqueeze(-2) - self.centers.unsqueeze(0))
+        import pdb; pdb.set_trace()
         q = distance_to_centers - self.half_sizes.unsqueeze(0) + self.radius.unsqueeze(0).unsqueeze(-1)
         max_q = torch.amax(q, dim=-1)
         sdfs = torch.minimum(max_q, torch.zeros_like(max_q)) + torch.linalg.norm(torch.relu(q), dim=-1) - self.radius.unsqueeze(0)
@@ -375,7 +377,7 @@ class MultiInfiniteCylinderField(PrimitiveShapeField):
         raise NotImplementedError
 
     def render(self, ax, pos=None, ori=None):
-        raise NotImplementedError
+        # raise NotImplementedError
         # https://stackoverflow.com/a/49311446
         def data_for_cylinder_along_z(center_x, center_y, radius, height_z):
             z = np.linspace(0, height_z, 50)
@@ -413,7 +415,7 @@ class MultiCylinderField(MultiInfiniteCylinderField):
         return f"Cylinder(centers={self.centers}, radii={self.radii}, heights={self.heights})"
 
     def compute_signed_distance_impl(self, x):
-        raise NotImplementedError
+        # raise NotImplementedError
         x = x - self.center
         x_proj = x[:, :2]
         x_proj_norm = torch.norm(x_proj, dim=-1)
@@ -550,7 +552,7 @@ class ObjectField(PrimitiveShapeField):
 
     def compute_signed_distance_impl(self, x):
         # Transform the point before computing the SDF.
-        # The implemented SDFs assume the objects are centered around 0 and not rotated.
+        # The implemented SDFs assume the objects are centered around 0 and not rotated.x.unsqueeze(-2)
         x_shape = x.shape
         if x_shape[-1] == 2:
             x_new = torch.cat((x, torch.zeros((x.shape[:-1]), **self.tensor_args).unsqueeze(-1)), dim=-1)
