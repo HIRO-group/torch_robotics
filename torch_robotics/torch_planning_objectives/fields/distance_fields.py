@@ -4,6 +4,7 @@ import einops
 import torch
 from matplotlib import pyplot as plt
 
+from storm_kit.geom.nn_model.robot_self_collision import RobotSelfCollisionNet
 from torch_robotics.torch_kinematics_tree.geometrics.utils import SE3_distance
 from torch_robotics.visualizers.planning_visualizer import create_fig_and_axes
 import torch.nn.functional as Functional
@@ -90,8 +91,8 @@ class EmbodimentDistanceFieldBase(DistanceField):
                  num_interpolated_points=30,
                  collision_margins=0.,
                  cutoff_margin=0.001,
-                 field_type='sdf', clamp_sdf=False,
-                 interpolate_link_pos=False,
+                 field_type='sdf', clamp_sdf=True,
+                 interpolate_link_pos=True,
                  **kwargs):
         super().__init__(**kwargs)
         assert robot is not None, "You need to pass a robot instance to the embodiment distance fields"
@@ -236,7 +237,6 @@ class CollisionSelfField(EmbodimentDistanceFieldBase):
 
     def compute_embodiment_collision(self, q, link_pos, **kwargs):  # position tensor
         margin = kwargs.get('margin', self.cutoff_margin)
-        link_pos = link_pos[..., self.link_idxs_for_collision_checking, :]
         distances = self.compute_embodiment_signed_distances(q, link_pos, **kwargs)
         any_self_collision = torch.any(distances < margin, dim=-1)
         return any_self_collision
@@ -259,7 +259,6 @@ class CollisionSelfFieldWrapperSTORM(EmbodimentDistanceFieldBase):
 
     def __init__(self, robot, weights_fname, n_joints, *args, **kwargs):
         super().__init__(robot, *args, collision_margins=0., interpolate_link_pos=False, **kwargs)
-        from storm_kit.geom.nn_model.robot_self_collision import RobotSelfCollisionNet
         self.robot_self_collision_net = RobotSelfCollisionNet(n_joints)
         self.robot_self_collision_net.load_weights(weights_fname, self.tensor_args)
 
@@ -310,7 +309,6 @@ class CollisionObjectBase(EmbodimentDistanceFieldBase):
     def compute_embodiment_collision(self, q, link_pos, **kwargs):
         # position tensor
         margin = kwargs.get('margin', self.collision_margins + self.cutoff_margin)
-        link_pos = link_pos[..., self.link_idxs_for_collision_checking, :]
         signed_distances = self.object_signed_distances(link_pos, **kwargs)
         collisions = signed_distances < margin
         # reduce over points (dim -1) and over objects (dim -2)
