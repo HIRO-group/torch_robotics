@@ -743,7 +743,11 @@ class MotionPlanningController:
             for idx in envs_idxs:
                 if idx not in envs_with_robot_in_contact_unique:
                     envs_with_robot_in_contact_unique.append(idx)
-
+        
+        cpu_trajs = trajectories_copy.cpu()
+        non_intersecting_trajectories = np.delete(cpu_trajs, envs_with_robot_in_contact_unique, axis=1).numpy()
+        # save non_intersecitng_trajectories to npy file
+        np.save("/home/gilberto/mpd-public/non_intersecting_trajs_shelf.npy", non_intersecting_trajectories)
         print(f'trajectories free in Isaac: {B-len(envs_with_robot_in_contact_unique)}/{B}')
 
 

@@ -191,6 +191,9 @@ class EnvYaml(EnvBase):
                 #                     box_size,
                 #                     'Blues')
 
+                frac_table_top = 0.15
+                frac_shelf = 0.15
+                frac_else = 0.15
                 if not self.all_same(box_size):
 
                     # get length of shortest side
@@ -208,17 +211,17 @@ class EnvYaml(EnvBase):
 
                     # Calculate the number of cubes to keep in each dimension
                     if box['id'] == "table_top":
-                        num_cubes_x_to_keep = int(num_cubes_x * 0.10)
-                        num_cubes_y_to_keep = int(num_cubes_y * 0.10)
-                        num_cubes_z_to_keep = int(num_cubes_z * 0.10)
+                        num_cubes_x_to_keep = int(num_cubes_x * frac_table_top)
+                        num_cubes_y_to_keep = int(num_cubes_y * frac_table_top)
+                        num_cubes_z_to_keep = int(num_cubes_z * frac_table_top)
                     elif 'shelf' in box['id']:
-                        num_cubes_x_to_keep = int(num_cubes_x * 0.20)
-                        num_cubes_y_to_keep = int(num_cubes_y * 0.20)
-                        num_cubes_z_to_keep = int(num_cubes_z * 0.20)   
+                        num_cubes_x_to_keep = int(num_cubes_x * frac_shelf)
+                        num_cubes_y_to_keep = int(num_cubes_y * frac_shelf)
+                        num_cubes_z_to_keep = int(num_cubes_z * frac_shelf)   
                     else:
-                        num_cubes_x_to_keep = int(num_cubes_x * 0.25)
-                        num_cubes_y_to_keep = int(num_cubes_y * 0.25)
-                        num_cubes_z_to_keep = int(num_cubes_z * 0.25)
+                        num_cubes_x_to_keep = int(num_cubes_x * frac_else)
+                        num_cubes_y_to_keep = int(num_cubes_y * frac_else)
+                        num_cubes_z_to_keep = int(num_cubes_z * frac_else)
                     if num_cubes_x_to_keep == 0:
                         num_cubes_x_to_keep = 1
                     if num_cubes_y_to_keep == 0:
@@ -235,7 +238,7 @@ class EnvYaml(EnvBase):
                     for i in range(num_cubes_x_to_keep):
                         for j in range(num_cubes_y_to_keep):
                             for k in range(num_cubes_z_to_keep):
-                                if box['id'] == 'table_top':
+                                if box['id'] == 'table_top' or 'shelf' in box['id']:
                                     # we need to do an affine transform of all the box 
                                     # centers about the center of the table top
                                     # get the center of the table top
@@ -255,10 +258,15 @@ class EnvYaml(EnvBase):
                                     x = box_center[0] + i * step_x_to_keep
                                     y = box_center[1] - j * step_y_to_keep
                                     z = box_center[2] + k * step_z_to_keep
-                                    x += 0.3
+                                    if box['id'] == 'table_top':
+                                        x += 0.3
+                                    elif 'shelf' in box['id']:
+                                        x -= 0.22
+                                        y += 0.22
                                     # apply the transformation
                                     new_center = np.dot(homogenous_matrix, np.array([x, y, z, 1]))
-                                    new_center[3] += 0.02
+                                    if box['id'] == 'table_top':
+                                        new_center[3] += 0.02
                                     self.box_centers.append(new_center[:3].tolist())
                                     self.box_sizes.append(min_side)
                                 else:

@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import os
 
 # Specify the path to your YAML file
-yaml_file = os.path.expanduser("~") + "/mpd-public/deps/torch_robotics/torch_robotics/environments/env_descriptions/env_anuj.yaml"
+yaml_file = os.path.expanduser("~") + "/mpd-public/deps/torch_robotics/torch_robotics/environments/env_descriptions/env_shelf.yaml"
 
 # Instantiate the EnvYaml environment
 tensor_args = {"device": "cpu", "dtype": torch.float32}
@@ -17,3 +17,4 @@ ax.set_ylabel("y")
 ax.set_zlabel("z")
 env.render(ax)
 plt.show()
+# pdb.set_trace()
