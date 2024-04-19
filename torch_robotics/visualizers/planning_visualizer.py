@@ -195,14 +195,15 @@ class PlanningVisualizer:
                 plot_multiline(ax[1], timesteps, traj_best_vel_np[..., i].reshape(1, -1), color='blue', **kwargs)
 
             # Start and goal
+            # import pdb; pdb.set_trace()
             if pos_start_state is not None:
-                ax[0].scatter(0, pos_start_state[i], color='green')
+                ax[0].scatter(0, pos_start_state.flatten()[i], color='green')
             if vel_start_state is not None:
-                ax[1].scatter(0, vel_start_state[i], color='green')
+                ax[1].scatter(0, vel_start_state.flatten()[i], color='green')
             if pos_goal_state is not None:
-                ax[0].scatter(H-1, pos_goal_state[i], color='purple')
+                ax[0].scatter(H-1, pos_goal_state.flatten()[i], color='purple')
             if vel_goal_state is not None:
-                ax[1].scatter(H-1, vel_goal_state[i], color='purple')
+                ax[1].scatter(H-1, vel_goal_state.flatten()[i], color='purple')
             # Y label
             ax[0].set_ylabel(f'q_{i}')
             # Set limits

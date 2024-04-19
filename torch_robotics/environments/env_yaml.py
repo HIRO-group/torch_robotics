@@ -16,6 +16,7 @@ from torch_robotics.robots import RobotPointMass, RobotPanda
 from torch_robotics.torch_utils.torch_utils import DEFAULT_TENSOR_ARGS
 from torch_robotics.visualizers.planning_visualizer import create_fig_and_axes
 import random
+import scipy.spatial.transform.rotation as R
 
 
 class EnvYaml(EnvBase):
@@ -77,6 +78,13 @@ class EnvYaml(EnvBase):
         #         tensor_args=tensor_args,
         #     )
         #     fields.append(spheres)
+        # add one sphere at 1, 1, 1
+        # sphere = MultiSphereField(
+        #     centers=torch.tensor([[1, 1, 1]]),
+        #     radii=torch.tensor([0.1]),
+        #     tensor_args=tensor_args,
+        # )
+        # fields.append(sphere)
         obj_field = ObjectField(fields, "obstacles")
         obj_list = [obj_field]
 
@@ -200,17 +208,17 @@ class EnvYaml(EnvBase):
 
                     # Calculate the number of cubes to keep in each dimension
                     if box['id'] == "table_top":
-                        num_cubes_x_to_keep = int(num_cubes_x * 0.13)
-                        num_cubes_y_to_keep = int(num_cubes_y * 0.13)
-                        num_cubes_z_to_keep = int(num_cubes_z * 0.13)
+                        num_cubes_x_to_keep = int(num_cubes_x * 0.10)
+                        num_cubes_y_to_keep = int(num_cubes_y * 0.10)
+                        num_cubes_z_to_keep = int(num_cubes_z * 0.10)
                     elif 'shelf' in box['id']:
+                        num_cubes_x_to_keep = int(num_cubes_x * 0.20)
+                        num_cubes_y_to_keep = int(num_cubes_y * 0.20)
+                        num_cubes_z_to_keep = int(num_cubes_z * 0.20)   
+                    else:
                         num_cubes_x_to_keep = int(num_cubes_x * 0.25)
                         num_cubes_y_to_keep = int(num_cubes_y * 0.25)
-                        num_cubes_z_to_keep = int(num_cubes_z * 0.25)   
-                    else:
-                        num_cubes_x_to_keep = int(num_cubes_x * 0.30)
-                        num_cubes_y_to_keep = int(num_cubes_y * 0.30)
-                        num_cubes_z_to_keep = int(num_cubes_z * 0.30)
+                        num_cubes_z_to_keep = int(num_cubes_z * 0.25)
                     if num_cubes_x_to_keep == 0:
                         num_cubes_x_to_keep = 1
                     if num_cubes_y_to_keep == 0:
@@ -227,14 +235,41 @@ class EnvYaml(EnvBase):
                     for i in range(num_cubes_x_to_keep):
                         for j in range(num_cubes_y_to_keep):
                             for k in range(num_cubes_z_to_keep):
-                                self.box_centers.append(
-                                    [
-                                        box_center[0] + i * step_x_to_keep,
-                                        box_center[1] + j * step_y_to_keep,
-                                        box_center[2] + k * step_z_to_keep,
-                                    ]
-                                )
-                                self.box_sizes.append(min_side)
+                                if box['id'] == 'table_top':
+                                    # we need to do an affine transform of all the box 
+                                    # centers about the center of the table top
+                                    # get the center of the table top
+                                    table_center = box_center
+                                    # get the rotation quaternion
+                                    orientation = box["primitive_poses"][0]["orientation"]
+                                    rot = R.Rotation.from_quat(orientation)
+                                    # add 180 deg in z axis
+                                    # rot = rot * R.Rotation.from_euler('y', -np.pi)
+                                    # get the rotation matrix
+                                    rot_matrix = rot.as_matrix()
+                                    # find homogenous transformation matrix
+                                    homogenous_matrix = np.zeros((4, 4))
+                                    homogenous_matrix[:3, :3] = rot_matrix
+                                    # homogenous_matrix[:3, 3] = table_center
+                                    homogenous_matrix[3, 3] = 1
+                                    x = box_center[0] + i * step_x_to_keep
+                                    y = box_center[1] - j * step_y_to_keep
+                                    z = box_center[2] + k * step_z_to_keep
+                                    x += 0.3
+                                    # apply the transformation
+                                    new_center = np.dot(homogenous_matrix, np.array([x, y, z, 1]))
+                                    new_center[3] += 0.02
+                                    self.box_centers.append(new_center[:3].tolist())
+                                    self.box_sizes.append(min_side)
+                                else:
+                                    self.box_centers.append(
+                                        [
+                                            box_center[0] + i * step_x_to_keep,
+                                            box_center[1] + j * step_y_to_keep,
+                                            box_center[2] + k * step_z_to_keep,
+                                        ]
+                                    )
+                                    self.box_sizes.append(min_side)
                                 # if 'table_top' in box['id']:
                                 #     self.box_colors.append('Blues')
                                 # elif 'shelf' in box['id']:
@@ -256,6 +291,8 @@ class EnvYaml(EnvBase):
                     #                 ]
                     #             )
                     #             self.box_sizes.append(min_side)
+                    
+                        
                 else:
                     self.box_centers.append(
                         [box_center[0], box_center[1], box_center[2]]

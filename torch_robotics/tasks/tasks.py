@@ -235,6 +235,7 @@ class PlanningTask(Task):
             else:
                 collisions = cost_collision_self + cost_collision_objects + cost_collision_border
 
+        # import pdb; pdb.set_trace()
         return collisions
 
     def get_trajs_collision_and_free(self, trajs, return_indices=False, num_interpolation=5):

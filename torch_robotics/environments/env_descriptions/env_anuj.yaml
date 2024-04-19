@@ -30,13 +30,13 @@
 # robot_model_name: panda
 world:
   collision_objects:
-    - primitive_poses:
-        - position: [0.308907161037877, 0.8398608492910964, 0.2984669621486253]
-          orientation: [0, 0, 0.4966790222940755, 0.8679342998251661]
-      primitives:
-        - dimensions: [0.12, 0.03]
-          type: cylinder
-      id: Can1
+    # - primitive_poses:
+    #     - position: [0.308907161037877, 0.8398608492910964, 0.2984669621486253]
+    #       orientation: [0, 0, 0.4966790222940755, 0.8679342998251661]
+    #   primitives:
+    #     - dimensions: [0.12, 0.03]
+    #       type: cylinder
+    #   id: Can1
     - primitives:
         - dimensions: [0.25, 0.25, 0.25]
           type: box
