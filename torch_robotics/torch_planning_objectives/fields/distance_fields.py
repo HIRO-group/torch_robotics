@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 import einops
 import torch
 from matplotlib import pyplot as plt
+import numpy as np
 
 from storm_kit.geom.nn_model.robot_self_collision import RobotSelfCollisionNet
 from torch_robotics.torch_kinematics_tree.geometrics.utils import SE3_distance
@@ -24,7 +25,7 @@ class DistanceField(ABC):
     def compute_distance(self, *args, **kwargs):
         pass
 
-    def compute_cost(self, q, link_pos, *args, **kwargs):
+    def compute_cost(self, q, link_pos, curobo_fn=None, *args, **kwargs):
         q_orig_shape = q.shape
         link_orig_shape = link_pos.shape
         if len(link_orig_shape) == 2:
@@ -45,7 +46,7 @@ class DistanceField(ABC):
 
         # link_tensor_pos
         # position: (batch horizon) x num_links x 3
-        cost = self.compute_costs_impl(q, link_pos, *args, **kwargs)
+        cost = self.compute_costs_impl(q, link_pos, curobo_fn=curobo_fn, *args, **kwargs)
 
         if cost.ndim == 1:
             cost = einops.rearrange(cost, "(b h) -> b h", b=b, h=h)
@@ -105,24 +106,41 @@ class EmbodimentDistanceFieldBase(DistanceField):
         self.clamp_sdf = clamp_sdf
         self.interpolate_link_pos = interpolate_link_pos
 
-    def compute_embodiment_cost(self, q, link_pos, field_type=None, **kwargs):  # position tensor
+    def compute_embodiment_cost(self, q, link_pos, field_type=None, curobo_fn=None, **kwargs):  # position tensor
+        # import pdb; pdb.set_trace()
         if field_type is None:
             field_type = self.field_type
         if field_type == 'rbf':
             return self.compute_embodiment_rbf_distances(link_pos, **kwargs).sum((-1, -2))
         elif field_type == 'sdf':  # this computes the negative cost from the DISTANCE FUNCTION
-            margin = self.collision_margins + self.cutoff_margin
-            # returns all distances from each link to the environment
-            # import pdb; pdb.set_trace()
-            margin_minus_sdf = -(self.compute_embodiment_signed_distances(q, link_pos, **kwargs) - margin)
-            if self.clamp_sdf:
-                clamped_sdf = torch.relu(margin_minus_sdf)
-            else:
-                clamped_sdf = margin_minus_sdf
-            if len(clamped_sdf.shape) == 3:  # cover the multiple objects case
-                clamped_sdf = clamped_sdf.max(-2)[0]
-            # sum over link points for gradient computation
-            return clamped_sdf.sum(-1)
+            # TODO: REPLACE THIS WITH CUROBO
+            q_new = q.reshape(3150, 7)
+            d_world, d_self = curobo_fn.get_world_self_collision_distance_from_joints(q_new)
+            
+            # d_world_neg = -d_world
+
+            # margin = self.collision_margins + self.cutoff_margin
+            # # returns all distances from each link to the environment
+            # # import pdb; pdb.set_trace()
+            # margin_minus_sdf = -(self.compute_embodiment_signed_distances(q, link_pos, **kwargs) - margin)
+            # if self.clamp_sdf:
+            #     clamped_sdf = torch.relu(margin_minus_sdf)
+            # else:
+            #     clamped_sdf = margin_minus_sdf
+            # if len(clamped_sdf.shape) == 3:  # cover the multiple objects case
+            #     clamped_sdf = clamped_sdf.max(-2)[0]
+            # # sum over link points for gradient computation
+            # old_ret = clamped_sdf.sum(-1)
+            # # import pdb; pdb.set_trace()
+            # abs_diff = abs((old_ret-d_world).cpu().detach().numpy())
+            # max_diff = np.max(abs_diff)
+            # # if max_diff > 0.05:
+            # #     print("MAX DIFF IS: %.2f" % max_diff)
+            # print("OLD RET MIN: %.2f" % min(old_ret.cpu().detach().numpy()))
+            # print("OLD RET Max: %.2f" % max(old_ret.cpu().detach().numpy()))
+
+
+            return d_world
         elif field_type == 'occupancy':
             return self.compute_embodiment_collision(q, link_pos, **kwargs)
             # distances = self.self_distances(link_pos, **kwargs)  # batch_dim x (links * (links - 1) / 2)
@@ -157,7 +175,7 @@ class EmbodimentDistanceFieldBase(DistanceField):
     #     else:
     #         raise NotImplementedError('field_type {} not implemented'.format(field_type))
 
-    def compute_costs_impl(self, q, link_pos, **kwargs):
+    def compute_costs_impl(self, q, link_pos, curobo_fn=None, **kwargs):
         # position link_pos tensor # batch x num_links x 3
         # interpolate to approximate link spheres
         if self.robot.grasped_object is not None:
@@ -179,7 +197,7 @@ class EmbodimentDistanceFieldBase(DistanceField):
         if self.robot.grasped_object is not None:
             link_pos = torch.cat((link_pos, link_pos_grasped_object), dim=-2)
 
-        embodiment_cost = self.compute_embodiment_cost(q, link_pos, **kwargs)
+        embodiment_cost = self.compute_embodiment_cost(q, link_pos, curobo_fn=curobo_fn, **kwargs)
         return embodiment_cost
 
     def compute_distance(self, q, link_pos, **kwargs):
@@ -262,8 +280,8 @@ class CollisionSelfFieldWrapperSTORM(EmbodimentDistanceFieldBase):
         self.robot_self_collision_net = RobotSelfCollisionNet(n_joints)
         self.robot_self_collision_net.load_weights(weights_fname, self.tensor_args)
 
-    def compute_costs_impl(self, q, link_pos, **kwargs):
-        embodiment_cost = self.compute_embodiment_cost(q, link_pos, **kwargs)
+    def compute_costs_impl(self, q, link_pos, curobo_fn=None, **kwargs):
+        embodiment_cost = self.compute_embodiment_cost(q, link_pos, curobo_fn=curobo_fn, **kwargs)
         return embodiment_cost
 
     def compute_embodiment_rbf_distances(self, *args, **kwargs):  # position tensor
@@ -338,6 +356,7 @@ class CollisionObjectDistanceField(CollisionObjectBase):
         dfs = []
         for df in df_obj_list:
             dfs.append(df.compute_signed_distance(link_pos).view(link_dim))  # df() returns batch_dim x links
+        # import pdb; pdb.set_trace()
         return torch.stack(dfs, dim=-2)  # batch_dim x num_sdfs x links
 
 
@@ -374,7 +393,7 @@ class EESE3DistanceField(DistanceField):
         # -1: get EE as last link  # TODO - get EE from its name id
         return SE3_distance(link_tensor[..., -1, :, :], self.target_H, w_pos=self.w_pos, w_rot=self.w_rot)
 
-    def compute_costs_impl(self, q, link_tensor, **kwargs):  # position tensor
+    def compute_costs_impl(self, q, link_tensor, curobo_fn=None, **kwargs):  # position tensor
         dist = self.compute_distance(link_tensor).squeeze()
         if self.square:
             dist = torch.square(dist)

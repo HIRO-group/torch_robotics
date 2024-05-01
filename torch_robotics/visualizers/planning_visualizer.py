@@ -147,7 +147,9 @@ class PlanningVisualizer:
         B, H, D = trajs_np.shape
 
         # Separate trajectories in collision and free (not in collision)
-        trajs_coll, trajs_free = self.task.get_trajs_collision_and_free(trajs)
+        # trajs_coll, trajs_free = self.task.get_trajs_collision_and_free(trajs)
+        trajs_coll = trajs[0]
+        trajs_free = trajs[1:]
 
         trajs_coll_pos_np = to_numpy([])
         trajs_coll_vel_np = to_numpy([])
@@ -226,23 +228,23 @@ class PlanningVisualizer:
         idxs = np.round(np.linspace(0, S - 1, n_frames)).astype(int)
         trajs_selection = trajs[idxs]
 
-        fig, axs = self.plot_joint_space_state_trajectories(trajs=trajs_selection[0], **kwargs)
+        # fig, axs = self.plot_joint_space_state_trajectories(trajs=trajs_selection[0], **kwargs)
 
-        def animate_fn(i):
-            [ax.clear() for ax in axs.ravel()]
-            fig.suptitle(f"iter: {idxs[i]}/{S-1}")
-            self.plot_joint_space_state_trajectories(
-                fig=fig, axs=axs,
-                trajs=trajs_selection[i], **kwargs
-            )
-            if i == n_frames -1 and traj_best is not None:
-                self.plot_joint_space_state_trajectories(
-                    fig=fig, axs=axs,
-                    trajs=trajs_selection[i],
-                    traj_best=traj_best, **kwargs
-                )
+        # def animate_fn(i):
+        #     [ax.clear() for ax in axs.ravel()]
+        #     fig.suptitle(f"iter: {idxs[i]}/{S-1}")
+        #     self.plot_joint_space_state_trajectories(
+        #         fig=fig, axs=axs,
+        #         trajs=trajs_selection[i], **kwargs
+        #     )
+        #     if i == n_frames -1 and traj_best is not None:
+        #         self.plot_joint_space_state_trajectories(
+        #             fig=fig, axs=axs,
+        #             trajs=trajs_selection[i],
+        #             traj_best=traj_best, **kwargs
+        #         )
 
-        create_animation_video(fig, animate_fn, n_frames=n_frames, **kwargs)
+        # create_animation_video(fig, animate_fn, n_frames=n_frames, **kwargs)
 
 
 def create_animation_video(fig, animate_fn, anim_time=5, n_frames=100, video_filepath='video.mp4', **kwargs):

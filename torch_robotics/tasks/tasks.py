@@ -88,7 +88,6 @@ class PlanningTask(Task):
             ws_bounds_max=self.ws_max,
             tensor_args=self.tensor_args
         )
-
         self._collision_fields = [self.df_collision_self, self.df_collision_objects, self.df_collision_ws_boundaries]
 
     def get_collision_fields(self):

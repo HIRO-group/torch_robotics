@@ -201,7 +201,7 @@ def patch_rotate_translate(ax, patch, rot, trans):
 
 class MultiBoxField(PrimitiveShapeField):
 
-    def __init__(self, centers, sizes, tensor_args=None):
+    def __init__(self, centers, sizes, oris, tensor_args=None):
         """
         Parameters
         ----------
@@ -209,10 +209,13 @@ class MultiBoxField(PrimitiveShapeField):
                 Center of the boxes.
             sizes: numpy array
                 Sizes of the boxes.
+            oris: numpy array
+                Orientation of Boxes
         """
         super().__init__(dim=centers.shape[-1], tensor_args=tensor_args)
         self.centers = to_torch(centers, **self.tensor_args)
         self.sizes = to_torch(sizes, **self.tensor_args)
+        self.oris = to_torch(oris, **self.tensor_args)
         self.half_sizes = self.sizes / 2
 
     def __repr__(self):
@@ -309,7 +312,7 @@ class MultiBoxField(PrimitiveShapeField):
 
 class MultiRoundedBoxField(MultiBoxField):
 
-    def __init__(self, centers, sizes, tensor_args=None):
+    def __init__(self, centers, sizes, oris, tensor_args=None):
         """
         Parameters
         ----------
@@ -317,8 +320,10 @@ class MultiRoundedBoxField(MultiBoxField):
                 Center of the boxes.
             sizes: numpy array
                 Sizes of the boxes.
+            oris: numpy array
+                Orientation of Boxes
         """
-        super().__init__(centers, sizes, tensor_args=tensor_args)
+        super().__init__(centers, sizes, oris, tensor_args=tensor_args)
         self.radius = torch.min(self.sizes, dim=-1)[0] * 0.15  # empirical value
 
     def compute_signed_distance_impl(self, x):
@@ -341,7 +346,7 @@ class MultiRoundedBoxField(MultiBoxField):
 # Alias for rounded box.
 # Use a rounded box instead of a box by default.
 # This creates smoother cost functions, which are important to gradient-based optimization methods.
-MultiBoxField = MultiRoundedBoxField
+# MultiBoxField = MultiRoundedBoxField
 
 
 # TODO - NEEDS CHECKING

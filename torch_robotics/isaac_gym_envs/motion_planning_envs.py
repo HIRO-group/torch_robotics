@@ -18,7 +18,7 @@ import torch
 from deps.isaacgym.python.isaacgym.torch_utils import to_torch
 from torch_robotics.environments import EnvTableShelf
 from torch_robotics.environments.env_spheres_3d import EnvSpheres3D
-from torch_robotics.environments.primitives import MultiSphereField, MultiBoxField
+from torch_robotics.environments.primitives import MultiSphereField, MultiBoxField, MultiCylinderField
 from torch_robotics.robots.robot_panda import RobotPanda
 from torch_robotics.tasks.tasks import PlanningTask
 from torch_robotics.torch_kinematics_tree.models.robots import modidy_franka_panda_urdf_grasped_object
@@ -61,7 +61,7 @@ def create_assets_from_primitive_shapes(sim, gym, obj_list):
                     object_poses_l.append(set_position_and_orientation(center_np, obj_pos, obj_ori))
 
             elif isinstance(obj_field, MultiBoxField):
-                for center, size in zip(obj_field.centers, obj_field.sizes):
+                for center, size, ori in zip(obj_field.centers, obj_field.sizes, obj_field.oris):
                     center_np = to_numpy(center)
                     size_np = to_numpy(size)
 
@@ -72,6 +72,20 @@ def create_assets_from_primitive_shapes(sim, gym, obj_list):
                     object_assets_l.append(sphere_asset)
 
                     # set position and orientation
+                    # new_obj_ori = [obj_ori[1], obj_ori[2], obj_ori[3], obj_ori[0]]
+                    object_poses_l.append(set_position_and_orientation(center_np, obj_pos, ori))
+            elif isinstance(obj_field, MultiCylinderField):
+                for center, radius, height in zip (obj_field.centers, obj_field.radii, obj_field.heights):
+                    center_np = to_numpy(center)
+                    radius_np = to_numpy(radius)
+                    height_np = to_numpy(height)
+
+                    #create cylinder asset
+                    asset_options = gymapi.AssetOptions()
+                    asset_options.fix_base_link = True
+                    cyl_asset = gym.create_box(sim, 2*radius_np, 2*radius_np, height_np, asset_options)
+                    object_assets_l.append(cyl_asset)
+
                     object_poses_l.append(set_position_and_orientation(center_np, obj_pos, obj_ori))
             else:
                 raise NotImplementedError
@@ -315,7 +329,7 @@ class PandaMotionPlanningIsaacGymEnv:
         # default_dof_pos[:7] = franka_mids[:7]
 
         # grippers open
-        self.default_dof_pos[7:] = self.franka_upper_limits[7:]
+        self.default_dof_pos[7:] = self.franka_lower_limits[7:]
 
         self.default_dof_state = np.zeros(self.franka_num_dofs, gymapi.DofState.dtype)
         self.default_dof_state["pos"] = self.default_dof_pos
@@ -744,10 +758,10 @@ class MotionPlanningController:
                 if idx not in envs_with_robot_in_contact_unique:
                     envs_with_robot_in_contact_unique.append(idx)
         
-        cpu_trajs = trajectories_copy.cpu()
-        non_intersecting_trajectories = np.delete(cpu_trajs, envs_with_robot_in_contact_unique, axis=1).numpy()
-        # save non_intersecitng_trajectories to npy file
-        np.save("/home/gilberto/mpd-public/non_intersecting_trajs_shelf.npy", non_intersecting_trajectories)
+        # cpu_trajs = trajectories_copy.cpu()
+        # non_intersecting_trajectories = np.delete(cpu_trajs, envs_with_robot_in_contact_unique, axis=1).numpy()
+        # # save non_intersecitng_trajectories to npy file
+        # np.save("/home/gilberto/mpd-public/non_intersecting_trajs_shelf.npy", non_intersecting_trajectories)
         print(f'trajectories free in Isaac: {B-len(envs_with_robot_in_contact_unique)}/{B}')
 
 

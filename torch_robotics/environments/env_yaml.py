@@ -32,6 +32,7 @@ class EnvYaml(EnvBase):
         self.cylinder_heights = []
         self.sphere_centers = []
         self.sphere_radii = []
+        self.box_oris = []
         self.define_obstacles()
         # pdb.set_trace()
         # # Select the first 50 items for each type
@@ -57,17 +58,18 @@ class EnvYaml(EnvBase):
         # pdb.set_trace()
         fields = []
         if self.box_centers:
-            boxes = MultiSphereField(
+            boxes = MultiBoxField(
                 centers=torch.tensor(self.box_centers),
-                radii=torch.tensor(self.box_sizes),
+                sizes=torch.tensor(self.box_sizes),
+                oris=torch.tensor(self.box_oris),
                 tensor_args=tensor_args,
             )
             fields.append(boxes)
         if self.cylinder_centers:
-            cylinders = MultiSphereField(
+            cylinders = MultiCylinderField(
                 centers=torch.tensor(self.cylinder_centers),
                 radii=torch.tensor(self.cylinder_radii),
-                # heights=torch.tensor(self.cylinder_heights),
+                heights=torch.tensor(self.cylinder_heights),
                 tensor_args=tensor_args,
             )
             fields.append(cylinders)
@@ -95,6 +97,7 @@ class EnvYaml(EnvBase):
             ),  # environments limits
             obj_fixed_list=obj_list,
             tensor_args=tensor_args,
+            precompute_sdf_obj_fixed = False,
             **kwargs
         )
 
@@ -182,6 +185,8 @@ class EnvYaml(EnvBase):
                 box_size = box["primitives"][0]["dimensions"]
                 # get position
                 box_center = box["primitive_poses"][0]["position"]
+
+                box_orientation = box["primitive_poses"][0]["orientation"]
                 # if box size is not square, break up into multiple boxes
 
                 # visualize the boxes using matplotlib
@@ -194,7 +199,7 @@ class EnvYaml(EnvBase):
                 frac_table_top = 0.15
                 frac_shelf = 0.15
                 frac_else = 0.15
-                if not self.all_same(box_size):
+                if False: #not self.all_same(box_size):
 
                     # get length of shortest side
                     min_side_arg = np.argmin(box_size)
@@ -305,7 +310,8 @@ class EnvYaml(EnvBase):
                     self.box_centers.append(
                         [box_center[0], box_center[1], box_center[2]]
                     )
-                    self.box_sizes.append(box_size[0])
+                    self.box_sizes.append([box_size[0], box_size[1], box_size[2]])
+                    self.box_oris.append([box_orientation[3], box_orientation[0], box_orientation[1], box_orientation[2]])
         # Select a random uniform 10% of the boxes
         # num_boxes = len(self.box_centers)
         # num_boxes_to_keep = int(num_boxes * 0.1)
