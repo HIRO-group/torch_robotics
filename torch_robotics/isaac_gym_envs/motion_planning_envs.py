@@ -238,10 +238,17 @@ class PandaMotionPlanningIsaacGymEnv:
         # gym arguments
         self.gym_args = gymutil.parse_arguments()
         self.gym_args.use_gpu_pipeline = use_pipeline_gpu
-        self.gym_args.compute_device_id = 1
+        device_count = torch.cuda.device_count()
+        if device_count == 1:
+            device_name = 'cuda'
+            idx = 0
+        elif device_count > 1:
+            device_name = 'cuda:1'
+            idx = 1
+        self.gym_args.compute_device_id = idx
         # self.gym_args.graphics_device_id = 1
-        self.tensor_args = {'device': torch.device(type="cuda", index=1)}
-        self.gym_args.sim_device = 'cuda:1'
+        self.tensor_args = {'device': torch.device(type="cuda", index=idx)}
+        self.gym_args.sim_device = device_name
 
         self.sync_with_real_time = sync_with_real_time
 
